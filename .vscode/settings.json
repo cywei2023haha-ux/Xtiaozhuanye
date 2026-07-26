@@ -1,0 +1,9 @@
+{
+  "files.associations": {
+    "env.local": "dotenv",
+    ".env.local": "dotenv"
+  },
+  "files.exclude": {
+    "**/.env.local": false
+  }
+}

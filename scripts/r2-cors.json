@@ -1,0 +1,20 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "http://localhost:2000",
+          "http://127.0.0.1:2000",
+          "http://localhost:3000",
+          "http://127.0.0.1:3000",
+          "https://artslab.fun",
+          "https://www.artslab.fun"
+        ],
+        "methods": ["GET", "PUT", "HEAD"],
+        "headers": ["Content-Type", "Content-Length", "Authorization"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}
