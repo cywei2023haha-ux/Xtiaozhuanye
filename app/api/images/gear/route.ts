@@ -12,7 +12,10 @@ export async function GET() {
   } catch (error) {
     console.error("[api/images/gear]", error);
     return NextResponse.json(
-      { error: "Failed to fetch gear images" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch gear images",
+      },
       { status: 500 },
     );
   }

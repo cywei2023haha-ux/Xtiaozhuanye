@@ -6,6 +6,17 @@ export async function GET(request: NextRequest) {
   const cursor = searchParams.get("cursor");
   const limit = Number(searchParams.get("limit") ?? "20");
 
-  const page = await fetchCharacterSetsPage(cursor, limit);
-  return NextResponse.json(page);
+  try {
+    const page = await fetchCharacterSetsPage(cursor, limit);
+    return NextResponse.json(page);
+  } catch (error) {
+    console.error("[api/character-sets]", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch character sets",
+      },
+      { status: 500 },
+    );
+  }
 }

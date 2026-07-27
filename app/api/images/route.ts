@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[api/images]", error);
     return NextResponse.json(
-      { error: "Failed to fetch images" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch images",
+      },
       { status: 500 },
     );
   }

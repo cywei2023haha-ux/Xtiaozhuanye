@@ -1,4 +1,5 @@
 import { getMockArchiveCatalog } from "@/lib/mock-images";
+import { isMockDataAllowed } from "@/lib/runtime-env";
 import { chunkArray, shuffleArray } from "@/lib/shuffle";
 import {
   createSupabaseServer,
@@ -12,6 +13,9 @@ import { HUB_GRID_SIZE, HUB_PAGE_COUNT } from "@/lib/types";
 const HERO_BG_COUNT = 1;
 const HUB_TOTAL = HUB_PAGE_COUNT * HUB_GRID_SIZE;
 const RANDOM_POOL_SIZE = HERO_BG_COUNT + HUB_TOTAL;
+
+const SUPABASE_REQUIRED =
+  "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) as Worker secrets/vars.";
 
 function pickWithRepeat(pool: ArchiveImage[], count: number): ArchiveImage[] {
   if (pool.length === 0) return [];
@@ -56,35 +60,44 @@ function buildFeaturedFromArchive(
 export async function fetchFeaturedGallery(): Promise<FeaturedGalleryResponse> {
   if (isSupabaseConfigured()) {
     const supabase = createSupabaseServer();
-    if (supabase) {
-      const [archiveRes, avatarRes] = await Promise.all([
-        supabase
-          .from("images")
-          .select(IMAGE_SELECT)
-          .eq("image_role", "archive"),
-        supabase
-          .from("images")
-          .select(IMAGE_SELECT)
-          .eq("image_role", "hero_avatar")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
-
-      if (!archiveRes.error && archiveRes.data) {
-        const archive = archiveRes.data.map(mapImageRow);
-        const heroAvatar = avatarRes.data ? mapImageRow(avatarRes.data) : null;
-        return {
-          ...buildFeaturedFromArchive(archive, heroAvatar),
-          source: "supabase",
-        };
-      }
+    if (!supabase) {
+      throw new Error("Supabase client unavailable");
     }
+
+    const [archiveRes, avatarRes] = await Promise.all([
+      supabase
+        .from("images")
+        .select(IMAGE_SELECT)
+        .eq("image_role", "archive"),
+      supabase
+        .from("images")
+        .select(IMAGE_SELECT)
+        .eq("image_role", "hero_avatar")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (archiveRes.error) {
+      console.error("[featured] archive query failed", archiveRes.error);
+      throw new Error(archiveRes.error.message);
+    }
+
+    const archive = (archiveRes.data ?? []).map(mapImageRow);
+    const heroAvatar = avatarRes.data ? mapImageRow(avatarRes.data) : null;
+    return {
+      ...buildFeaturedFromArchive(archive, heroAvatar),
+      source: "supabase",
+    };
   }
 
-  const archive = getMockArchiveCatalog();
-  return {
-    ...buildFeaturedFromArchive(archive, null),
-    source: "mock",
-  };
+  if (isMockDataAllowed()) {
+    const archive = getMockArchiveCatalog();
+    return {
+      ...buildFeaturedFromArchive(archive, null),
+      source: "mock",
+    };
+  }
+
+  throw new Error(SUPABASE_REQUIRED);
 }

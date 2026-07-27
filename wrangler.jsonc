@@ -2,7 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": ".open-next/worker.js",
   "name": "the-stand-archive",
-  "compatibility_date": "2024-12-30",
+  // >= 2025-04-01: nodejs_compat mirrors Worker vars/secrets onto process.env
+  "compatibility_date": "2025-04-01",
   "compatibility_flags": [
     "nodejs_compat",
     "global_fetch_strictly_public"

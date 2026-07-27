@@ -1,7 +1,8 @@
+import { getEnv } from "@/lib/runtime-env";
 import { NextRequest, NextResponse } from "next/server";
 
 export function verifyAdminRequest(request: NextRequest): boolean {
-  const adminKey = process.env.ADMIN_API_KEY;
+  const adminKey = getEnv("ADMIN_API_KEY");
   if (!adminKey) return false;
 
   const authHeader = request.headers.get("authorization");
@@ -25,5 +26,5 @@ export function adminNotConfigured() {
 }
 
 export function isAdminConfigured(): boolean {
-  return Boolean(process.env.ADMIN_API_KEY);
+  return Boolean(getEnv("ADMIN_API_KEY"));
 }

@@ -1,8 +1,6 @@
 import { LINKS } from "@/lib/config";
-import {
-  CHARACTER_SLOT_COUNT,
-  formatCharacterDisplayName,
-} from "@/lib/character-storage";
+import { CHARACTER_SLOT_COUNT } from "@/lib/character-storage";
+import { isMockDataAllowed } from "@/lib/runtime-env";
 import { createSupabaseServer, isSupabaseConfigured } from "@/lib/supabase";
 
 export type CharacterSet = {
@@ -23,6 +21,9 @@ export type CharacterSetsPageResponse = {
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
+
+const SUPABASE_REQUIRED =
+  "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) as Worker secrets/vars.";
 
 type CharacterSetRow = {
   set_id: string;
@@ -48,6 +49,7 @@ function mapCharacterSetRow(row: CharacterSetRow): CharacterSet {
   };
 }
 
+/** Local-dev only catalog. Never used in production unless ALLOW_MOCK_DATA=true. */
 const MOCK_CHARACTER_SETS: CharacterSet[] = [
   {
     set_id: "anis_swimsuit_01",
@@ -92,51 +94,60 @@ export async function fetchCharacterSetsPage(
 
   if (isSupabaseConfigured()) {
     const supabase = createSupabaseServer();
-    if (supabase) {
-      let query = supabase
-        .from("character_sets")
-        .select(CHARACTER_SET_SELECT)
-        .order("sort_order", { ascending: true })
-        .limit(pageSize + 1);
+    if (!supabase) {
+      throw new Error("Supabase client unavailable");
+    }
 
-      if (cursor) {
-        const cursorOrder = Number(cursor);
-        if (Number.isFinite(cursorOrder)) {
-          query = query.gt("sort_order", cursorOrder);
-        }
-      }
+    let query = supabase
+      .from("character_sets")
+      .select(CHARACTER_SET_SELECT)
+      .order("sort_order", { ascending: true })
+      .limit(pageSize + 1);
 
-      const { data, error } = await query;
-
-      if (!error && data) {
-        const rows = data.slice(0, pageSize).map(mapCharacterSetRow);
-        const hasMore = data.length > pageSize;
-        const nextCursor =
-          hasMore && rows.length > 0
-            ? String(rows[rows.length - 1].sort_order)
-            : null;
-
-        return { items: rows, nextCursor, hasMore, source: "supabase" };
+    if (cursor) {
+      const cursorOrder = Number(cursor);
+      if (Number.isFinite(cursorOrder)) {
+        query = query.gt("sort_order", cursorOrder);
       }
     }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("[character-sets] supabase query failed", error);
+      throw new Error(error.message);
+    }
+
+    const rows = (data ?? []).slice(0, pageSize).map(mapCharacterSetRow);
+    const hasMore = (data?.length ?? 0) > pageSize;
+    const nextCursor =
+      hasMore && rows.length > 0
+        ? String(rows[rows.length - 1].sort_order)
+        : null;
+
+    return { items: rows, nextCursor, hasMore, source: "supabase" };
   }
 
-  const all = getMockCharacterSets();
-  let start = 0;
-  if (cursor) {
-    const cursorOrder = Number(cursor);
-    const idx = all.findIndex((s) => s.sort_order > cursorOrder);
-    start = idx >= 0 ? idx : all.length;
+  if (isMockDataAllowed()) {
+    const all = getMockCharacterSets();
+    let start = 0;
+    if (cursor) {
+      const cursorOrder = Number(cursor);
+      const idx = all.findIndex((s) => s.sort_order > cursorOrder);
+      start = idx >= 0 ? idx : all.length;
+    }
+
+    const items = all.slice(start, start + pageSize);
+    const hasMore = start + pageSize < all.length;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? String(items[items.length - 1].sort_order)
+        : null;
+
+    return { items, nextCursor, hasMore, source: "mock" };
   }
 
-  const items = all.slice(start, start + pageSize);
-  const hasMore = start + pageSize < all.length;
-  const nextCursor =
-    hasMore && items.length > 0
-      ? String(items[items.length - 1].sort_order)
-      : null;
-
-  return { items, nextCursor, hasMore, source: "mock" };
+  throw new Error(SUPABASE_REQUIRED);
 }
 
 export async function fetchCharacterSetById(
@@ -144,18 +155,29 @@ export async function fetchCharacterSetById(
 ): Promise<CharacterSet | null> {
   if (isSupabaseConfigured()) {
     const supabase = createSupabaseServer();
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("character_sets")
-        .select(CHARACTER_SET_SELECT)
-        .eq("set_id", setId)
-        .maybeSingle();
-
-      if (!error && data) return mapCharacterSetRow(data);
+    if (!supabase) {
+      throw new Error("Supabase client unavailable");
     }
+
+    const { data, error } = await supabase
+      .from("character_sets")
+      .select(CHARACTER_SET_SELECT)
+      .eq("set_id", setId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[character-sets] by-id query failed", error);
+      throw new Error(error.message);
+    }
+
+    return data ? mapCharacterSetRow(data) : null;
   }
 
-  return getMockCharacterSets().find((s) => s.set_id === setId) ?? null;
+  if (isMockDataAllowed()) {
+    return getMockCharacterSets().find((s) => s.set_id === setId) ?? null;
+  }
+
+  throw new Error(SUPABASE_REQUIRED);
 }
 
 export function buildEmptyPreviewSlots(): string[] {

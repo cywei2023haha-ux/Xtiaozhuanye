@@ -1,5 +1,16 @@
 export const STAND_REF_COOKIE = "stand_ref";
 
+/**
+ * Middleware + client safe env read (process.env only).
+ * OpenNext mirrors Worker vars/secrets onto process.env at runtime.
+ * Server-only modules that need a dual CF binding fallback use lib/runtime-env.ts.
+ */
+function getRefEnv(key: string): string | undefined {
+  const value = process.env[key];
+  if (typeof value === "string" && value.length > 0) return value;
+  return undefined;
+}
+
 export function extractRef(searchParams: URLSearchParams): string {
   return (
     searchParams.get("ref") ??
@@ -10,8 +21,8 @@ export function extractRef(searchParams: URLSearchParams): string {
 
 export function getRootDomain(): string {
   return (
-    process.env.ROOT_DOMAIN ??
-    process.env.NEXT_PUBLIC_ROOT_DOMAIN ??
+    getRefEnv("ROOT_DOMAIN") ??
+    getRefEnv("NEXT_PUBLIC_ROOT_DOMAIN") ??
     ""
   ).trim();
 }
@@ -49,7 +60,7 @@ export function getSubdomainFromHost(host: string): string | null {
 }
 
 export function mapSubdomainToRef(subdomain: string): string {
-  const mapJson = process.env.REF_SUBDOMAIN_MAP;
+  const mapJson = getRefEnv("REF_SUBDOMAIN_MAP");
   if (mapJson) {
     try {
       const map = JSON.parse(mapJson) as Record<string, string>;

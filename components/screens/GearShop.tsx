@@ -14,12 +14,6 @@ import { formatUsdPrice } from "@/lib/format-price";
 import type { ArchiveImage } from "@/lib/types";
 import { useEffect, useState } from "react";
 
-const FALLBACK_GEAR = [
-  { name: "Leather Restraint Set", price: "$49.99" },
-  { name: "Premium Impact Tools", price: "$39.99" },
-  { name: "Scene Starter Kit", price: "$89.99" },
-];
-
 function gearLabel(item: ArchiveImage, index: number) {
   const product = item.associated_products[0];
   return {
@@ -41,26 +35,7 @@ export function GearShop({ className = "" }: { className?: string }) {
       .catch(() => {});
   }, []);
 
-  const displayItems =
-    gearItems.length > 0
-      ? gearItems.slice(0, 3)
-      : FALLBACK_GEAR.map((item, i) => ({
-          image_id: `fallback_${i}`,
-          r2_url: "",
-          is_locked: false,
-          sort_order: i,
-          image_role: "gear" as const,
-          associated_products: [
-            {
-              product_id: `fallback_${i}`,
-              name: item.name,
-              price: item.price,
-              shop_url: "",
-              position_x: "50%",
-              position_y: "50%",
-            },
-          ],
-        }));
+  const displayItems = gearItems.slice(0, 3);
 
   return (
     <ScreenShell id="gear-shop" label="CREATOR GEAR HUB" className={className}>

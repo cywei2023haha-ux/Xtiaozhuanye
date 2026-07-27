@@ -1,29 +1,29 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type { R2StoragePrefix } from "@/lib/image-roles";
+import { getEnv, requireEnv } from "@/lib/runtime-env";
 
 export function isR2Configured(): boolean {
   return Boolean(
-    process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET_NAME &&
-      process.env.R2_PUBLIC_URL,
+    getEnv("R2_ACCOUNT_ID") &&
+      getEnv("R2_ACCESS_KEY_ID") &&
+      getEnv("R2_SECRET_ACCESS_KEY") &&
+      getEnv("R2_BUCKET_NAME") &&
+      getEnv("R2_PUBLIC_URL"),
   );
 }
 
 function createR2Client(): S3Client {
-  const accountId = process.env.R2_ACCOUNT_ID!;
+  const accountId = requireEnv("R2_ACCOUNT_ID");
   return new S3Client({
     region: "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+      accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
+      secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
     },
   });
 }
-
-import type { R2StoragePrefix } from "@/lib/image-roles";
 
 export function buildObjectKey(
   filename: string,
@@ -35,7 +35,7 @@ export function buildObjectKey(
 }
 
 export function buildPublicUrl(key: string): string {
-  const base = process.env.R2_PUBLIC_URL!.replace(/\/$/, "");
+  const base = requireEnv("R2_PUBLIC_URL").replace(/\/$/, "");
   return `${base}/${key}`;
 }
 
@@ -45,7 +45,7 @@ export async function createPresignedUploadUrl(
 ): Promise<string> {
   const client = createR2Client();
   const command = new PutObjectCommand({
-    Bucket: process.env.R2_BUCKET_NAME!,
+    Bucket: requireEnv("R2_BUCKET_NAME"),
     Key: key,
     ContentType: contentType,
   });

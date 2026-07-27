@@ -14,7 +14,12 @@ export async function GET() {
   } catch (error) {
     console.error("[api/images/featured]", error);
     return NextResponse.json(
-      { error: "Failed to fetch featured gallery" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch featured gallery",
+      },
       { status: 500 },
     );
   }
