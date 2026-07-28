@@ -12,9 +12,9 @@ type FillImageProps = {
 };
 
 /**
- * Prefer native <img> for remote R2 URLs.
- * next/image `fill` + percentage height is unreliable inside aspect-ratio
- * frames on iOS Safari (desktop OK, mobile blank).
+ * In-flow sized box + covering img.
+ * Avoid next/image `fill` (fragile on iOS) and avoid making the ONLY
+ * child `absolute` without a sized parent.
  */
 export function FillImage({
   src,
@@ -29,7 +29,7 @@ export function FillImage({
 
   if (isRemote && !failed) {
     return (
-      <div className={`absolute inset-0 ${className}`}>
+      <div className={`relative h-full w-full min-h-0 min-w-0 ${className}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
@@ -37,7 +37,8 @@ export function FillImage({
           decoding="async"
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
-          className={`h-full w-full object-cover object-center ${imageClassName}`}
+          referrerPolicy="no-referrer"
+          className={`block h-full w-full object-cover object-center ${imageClassName}`}
           onError={() => setFailed(true)}
         />
       </div>
@@ -47,7 +48,7 @@ export function FillImage({
   if (gradient) {
     return (
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${gradient} ${className} ${imageClassName}`}
+        className={`h-full w-full bg-gradient-to-br ${gradient} ${className} ${imageClassName}`}
         role="img"
         aria-label={alt}
       />
@@ -56,7 +57,7 @@ export function FillImage({
 
   return (
     <div
-      className={`absolute inset-0 bg-gradient-to-br from-jojo-yellow to-jojo-purple ${className}`}
+      className={`h-full w-full bg-gradient-to-br from-jojo-yellow to-jojo-purple ${className}`}
       role="img"
       aria-label={alt}
     />
