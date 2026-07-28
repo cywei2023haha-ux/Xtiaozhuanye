@@ -1,5 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { AwsClient } from "aws4fetch";
 import type { R2StoragePrefix } from "@/lib/image-roles";
 import { getEnv, requireEnv } from "@/lib/runtime-env";
 
@@ -11,6 +10,8 @@ const R2_ENV_KEYS = [
   "R2_PUBLIC_URL",
 ] as const;
 
+const PRESIGN_EXPIRES_SECONDS = 3600;
+
 export function getMissingR2EnvKeys(): string[] {
   return R2_ENV_KEYS.filter((key) => !getEnv(key));
 }
@@ -19,19 +20,31 @@ export function isR2Configured(): boolean {
   return getMissingR2EnvKeys().length === 0;
 }
 
-function createR2Client(): S3Client {
-  const accountId = requireEnv("R2_ACCOUNT_ID");
-  return new S3Client({
+/**
+ * Presign with aws4fetch (Web Crypto) — AWS SDK v3 pulls Node `fs` via unenv
+ * on Cloudflare Workers and throws: fs.readFile is not implemented yet.
+ */
+function createAwsClient(): AwsClient {
+  return new AwsClient({
+    accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
+    service: "s3",
     region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
-      secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
-    },
-    // Required for R2 compatibility with newer AWS SDK checksum defaults
-    requestChecksumCalculation: "WHEN_REQUIRED",
-    responseChecksumValidation: "WHEN_REQUIRED",
   });
+}
+
+function buildR2ObjectUrl(key: string): URL {
+  const accountId = requireEnv("R2_ACCOUNT_ID");
+  const bucket = requireEnv("R2_BUCKET_NAME");
+  const encodedKey = key
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const url = new URL(
+    `https://${accountId}.r2.cloudflarestorage.com/${bucket}/${encodedKey}`,
+  );
+  url.searchParams.set("X-Amz-Expires", String(PRESIGN_EXPIRES_SECONDS));
+  return url;
 }
 
 export function buildObjectKey(
@@ -52,14 +65,22 @@ export async function createPresignedUploadUrl(
   key: string,
   contentType: string,
 ): Promise<string> {
-  const client = createR2Client();
-  const command = new PutObjectCommand({
-    Bucket: requireEnv("R2_BUCKET_NAME"),
-    Key: key,
-    ContentType: contentType,
-  });
+  const client = createAwsClient();
+  const objectUrl = buildR2ObjectUrl(key);
 
-  return getSignedUrl(client, command, { expiresIn: 3600 });
+  const signed = await client.sign(
+    new Request(objectUrl.toString(), {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType,
+      },
+    }),
+    {
+      aws: { signQuery: true },
+    },
+  );
+
+  return signed.url;
 }
 
 export function generateImageId(): string {

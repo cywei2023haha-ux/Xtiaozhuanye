@@ -15,11 +15,10 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1076.0",
-    "@aws-sdk/s3-request-presigner": "^3.1076.0",
     "@opennextjs/cloudflare": "^1.20.1",
     "@supabase/supabase-js": "^2.108.2",
     "@tanstack/react-virtual": "^3.14.4",
+    "aws4fetch": "^1.0.20",
     "next": "^16.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
