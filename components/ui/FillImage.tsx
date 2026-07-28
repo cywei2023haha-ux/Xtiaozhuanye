@@ -1,7 +1,6 @@
 "use client";
 
 import { getMockGradient } from "@/lib/mock-images";
-import Image from "next/image";
 import { useState } from "react";
 
 type FillImageProps = {
@@ -12,6 +11,11 @@ type FillImageProps = {
   priority?: boolean;
 };
 
+/**
+ * Prefer native <img> for remote R2 URLs.
+ * next/image `fill` + percentage height is unreliable inside aspect-ratio
+ * frames on iOS Safari (desktop OK, mobile blank).
+ */
 export function FillImage({
   src,
   alt,
@@ -25,15 +29,15 @@ export function FillImage({
 
   if (isRemote && !failed) {
     return (
-      <div className={`relative h-full w-full ${className}`}>
-        <Image
+      <div className={`absolute inset-0 ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={src}
           alt={alt}
-          fill
-          priority={priority}
-          className={`object-cover object-center ${imageClassName}`}
-          sizes="100vw"
-          unoptimized
+          decoding="async"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          className={`h-full w-full object-cover object-center ${imageClassName}`}
           onError={() => setFailed(true)}
         />
       </div>
@@ -43,7 +47,7 @@ export function FillImage({
   if (gradient) {
     return (
       <div
-        className={`h-full w-full bg-gradient-to-br ${gradient} ${className} ${imageClassName}`}
+        className={`absolute inset-0 bg-gradient-to-br ${gradient} ${className} ${imageClassName}`}
         role="img"
         aria-label={alt}
       />
@@ -52,7 +56,7 @@ export function FillImage({
 
   return (
     <div
-      className={`h-full w-full bg-gradient-to-br from-jojo-yellow to-jojo-purple ${className}`}
+      className={`absolute inset-0 bg-gradient-to-br from-jojo-yellow to-jojo-purple ${className}`}
       role="img"
       aria-label={alt}
     />

@@ -6,9 +6,13 @@ import { PaywallCard } from "@/components/gallery/PaywallCard";
 import { CHARACTER_SLOT_COUNT } from "@/lib/character-storage";
 import type { CharacterSet } from "@/lib/character-sets";
 
-/** 与第二屏 / 瀑布流一致的 9:16 竖屏画框 */
+/**
+ * Height-first 9:16 frame.
+ * Width-first + max-h + aspect-ratio often collapses to 0 height on iOS Safari,
+ * so Next/Image `fill` renders invisible on phones while desktop Chromium looks fine.
+ */
 const PORTRAIT_FRAME =
-  "relative mx-auto aspect-[9/16] w-[min(100%,calc((100dvh-80px)*9/16))] max-h-[calc(100dvh-80px)] overflow-hidden border-4 border-black bg-[#1a1a1a] shadow-[8px_8px_0px_#00FFCC]";
+  "relative h-full max-h-full w-auto max-w-full aspect-[9/16] overflow-hidden border-4 border-black bg-[#1a1a1a] shadow-[8px_8px_0px_#00FFCC]";
 
 type CharacterPreviewScrollerProps = {
   characterSet: CharacterSet;
@@ -20,7 +24,7 @@ export function CharacterPreviewScroller({
   const slides = Array.from({ length: CHARACTER_SLOT_COUNT + 1 }, (_, i) => i);
 
   return (
-    <div className="flex min-h-screen flex-col bg-black">
+    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-black">
       <GalleryTopNav
         centerLabel={characterSet.display_name}
         showJoinTier
@@ -30,13 +34,13 @@ export function CharacterPreviewScroller({
       />
 
       <div
-        className="h-[calc(100dvh-52px)] snap-y snap-mandatory overflow-y-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="min-h-0 flex-1 snap-y snap-mandatory overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-label={`${characterSet.display_name} preview gallery`}
       >
         {slides.map((index) => (
           <section
             key={index}
-            className="flex h-[calc(100dvh-52px)] w-full snap-start snap-always items-center justify-center px-2 py-3"
+            className="flex h-full min-h-full w-full snap-start snap-always items-center justify-center px-2 py-2"
           >
             {index < CHARACTER_SLOT_COUNT ? (
               <div className={PORTRAIT_FRAME}>
@@ -44,11 +48,11 @@ export function CharacterPreviewScroller({
                   <FillImage
                     src={characterSet.preview_images[index]}
                     alt={`${characterSet.display_name} ${index + 1}`}
-                    priority={index === 0}
+                    priority={index < 2}
                   />
                 ) : (
                   <div
-                    className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a1a1a] via-jojo-purple/30 to-jojo-cyan/20"
+                    className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1a1a1a] via-jojo-purple/30 to-jojo-cyan/20"
                     role="img"
                     aria-label={`${characterSet.display_name} preview ${index + 1}`}
                   >

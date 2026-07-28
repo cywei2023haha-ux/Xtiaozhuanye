@@ -8,13 +8,14 @@
           "http://localhost:3000",
           "http://127.0.0.1:3000",
           "https://artslab.fun",
-          "https://www.artslab.fun"
+          "https://www.artslab.fun",
+          "https://the-stand-archive.cywei2023haha.workers.dev"
         ],
         "methods": ["GET", "PUT", "HEAD"],
-        "headers": ["Content-Type", "Content-Length", "Authorization"]
+        "headers": ["*"]
       },
-      "exposeHeaders": ["ETag"],
-      "maxAgeSeconds": 3600
+      "exposeHeaders": ["ETag", "Content-Type", "Content-Length"],
+      "maxAgeSeconds": 86400
     }
   ]
 }
