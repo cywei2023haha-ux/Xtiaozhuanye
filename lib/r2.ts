@@ -3,14 +3,20 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { R2StoragePrefix } from "@/lib/image-roles";
 import { getEnv, requireEnv } from "@/lib/runtime-env";
 
+const R2_ENV_KEYS = [
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET_NAME",
+  "R2_PUBLIC_URL",
+] as const;
+
+export function getMissingR2EnvKeys(): string[] {
+  return R2_ENV_KEYS.filter((key) => !getEnv(key));
+}
+
 export function isR2Configured(): boolean {
-  return Boolean(
-    getEnv("R2_ACCOUNT_ID") &&
-      getEnv("R2_ACCESS_KEY_ID") &&
-      getEnv("R2_SECRET_ACCESS_KEY") &&
-      getEnv("R2_BUCKET_NAME") &&
-      getEnv("R2_PUBLIC_URL"),
-  );
+  return getMissingR2EnvKeys().length === 0;
 }
 
 function createR2Client(): S3Client {
@@ -22,6 +28,9 @@ function createR2Client(): S3Client {
       accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
       secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
     },
+    // Required for R2 compatibility with newer AWS SDK checksum defaults
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 

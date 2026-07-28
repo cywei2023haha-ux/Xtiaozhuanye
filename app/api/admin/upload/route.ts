@@ -9,6 +9,7 @@ import {
   buildPublicUrl,
   createPresignedUploadUrl,
   generateImageId,
+  getMissingR2EnvKeys,
   isR2Configured,
 } from "@/lib/r2";
 import { buildCharacterObjectKey } from "@/lib/character-storage";
@@ -29,9 +30,14 @@ type UploadRequestBody = {
 export async function POST(request: NextRequest) {
   if (!isAdminConfigured()) return adminNotConfigured();
   if (!verifyAdminRequest(request)) return adminUnauthorized();
+
   if (!isR2Configured()) {
+    const missing = getMissingR2EnvKeys();
     return NextResponse.json(
-      { error: "R2 is not configured. Set R2_* env variables." },
+      {
+        error: `R2 is not configured on the Worker. Missing: ${missing.join(", ")}. Set them as Cloudflare Worker Secrets/Vars, then redeploy.`,
+        missing,
+      },
       { status: 503 },
     );
   }
@@ -62,19 +68,32 @@ export async function POST(request: NextRequest) {
   const imageRole: ImageRole = body.imageRole ?? "archive";
 
   let key: string;
-  if (body.characterFolder && body.characterSlot) {
+  if (body.characterFolder && body.characterSlot != null && body.characterSlot > 0) {
     key = buildCharacterObjectKey(body.characterFolder, body.characterSlot);
   } else {
     const prefix = r2PrefixForRole(imageRole);
     key = buildObjectKey(filename, imageId, prefix);
   }
-  const uploadUrl = await createPresignedUploadUrl(key, contentType);
-  const publicUrl = buildPublicUrl(key);
 
-  return NextResponse.json({
-    imageId,
-    key,
-    uploadUrl,
-    publicUrl,
-  });
+  try {
+    const uploadUrl = await createPresignedUploadUrl(key, contentType);
+    const publicUrl = buildPublicUrl(key);
+
+    return NextResponse.json({
+      imageId,
+      key,
+      uploadUrl,
+      publicUrl,
+    });
+  } catch (error) {
+    console.error("[api/admin/upload] presign failed", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to create upload URL";
+    return NextResponse.json(
+      {
+        error: `Failed to create R2 upload URL: ${message}`,
+      },
+      { status: 500 },
+    );
+  }
 }

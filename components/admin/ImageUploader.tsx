@@ -64,7 +64,11 @@ export function ImageUploader({
 
         if (!presignRes.ok) {
           const data = await presignRes.json().catch(() => ({}));
-          throw new Error(data.error ?? "Failed to get upload URL");
+          const detail =
+            typeof data.error === "string"
+              ? data.error
+              : `HTTP ${presignRes.status}`;
+          throw new Error(`Failed to get upload URL: ${detail}`);
         }
 
         const { uploadUrl, publicUrl, imageId } = await presignRes.json();

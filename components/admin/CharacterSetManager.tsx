@@ -105,10 +105,17 @@ export function CharacterSetManager() {
 
       if (!presignRes.ok) {
         const data = await presignRes.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to get upload URL");
+        const detail =
+          typeof data.error === "string"
+            ? data.error
+            : `HTTP ${presignRes.status}`;
+        throw new Error(`Failed to get upload URL: ${detail}`);
       }
 
       const { uploadUrl, publicUrl } = await presignRes.json();
+      if (!uploadUrl || !publicUrl) {
+        throw new Error("Upload API returned empty uploadUrl/publicUrl");
+      }
       await uploadFileToR2(uploadUrl, file);
 
       const slots = buildEmptyPreviewSlots();
