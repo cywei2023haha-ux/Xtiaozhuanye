@@ -5,9 +5,9 @@ import { JojoCard } from "@/components/ui/JojoCard";
 import { getCharacterCoverUrl, type CharacterSet } from "@/lib/character-sets";
 import Link from "next/link";
 
-/** 竖版封面槽：任意比例图由 FillImage object-cover 居中裁切 */
+/** 竖版封面槽：用 padding 锁 9:16，避免手机端 aspect+纯绝对定位塌缩 */
 const PORTRAIT_CELL =
-  "relative mx-auto w-full max-w-full aspect-[9/16] overflow-hidden";
+  "relative mx-auto w-full max-w-full overflow-hidden";
 
 type CharacterWaterfallProps = {
   items: CharacterSet[];
@@ -23,19 +23,21 @@ function CharacterCell({ set }: { set: CharacterSet }) {
   return (
     <Link href={`/gallery/${set.set_id}`} className="block min-w-0 no-underline">
       <JojoCard hover="lift" className={`${PORTRAIT_CELL} bg-[#1a1a1a] p-0`}>
-        {cover ? (
-          <FillImage
-            src={cover}
-            alt={set.display_name}
-            className="absolute inset-0"
-          />
-        ) : (
-          <div
-            className="absolute inset-0 bg-gradient-to-br from-jojo-yellow via-jojo-purple to-jojo-cyan"
-            role="img"
-            aria-label={set.display_name}
-          />
-        )}
+        <div className="relative block w-full pb-[177.78%]">
+          {cover ? (
+            <FillImage
+              src={cover}
+              alt={set.display_name}
+              className="absolute inset-0"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-jojo-yellow via-jojo-purple to-jojo-cyan"
+              role="img"
+              aria-label={set.display_name}
+            />
+          )}
+        </div>
         <div className="absolute bottom-0 left-0 right-0 z-10 border-t-4 border-black bg-black/85 px-2 py-2">
           <p className="truncate text-[9px] font-black uppercase tracking-wider text-jojo-cyan sm:text-[10px]">
             {set.display_name}

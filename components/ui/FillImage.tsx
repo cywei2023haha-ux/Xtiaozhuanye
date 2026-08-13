@@ -12,10 +12,10 @@ type FillImageProps = {
 };
 
 /**
- * Cover-crop into parent box (any source aspect → frame).
- * Uses absolute inset img so height works inside aspect-ratio frames
- * on mobile Safari (percentage h-full alone often collapses).
- * Landscape e.g. 1664×1080 in 9:16 → scale to cover, crop left/right.
+ * Cover-crop into a sized parent (any source aspect → frame).
+ * Parent must have real size (width + in-flow pad/height). Pass
+ * `className="absolute inset-0"` when overlaying a pad-lock box.
+ * Landscape e.g. 1664×1080 → crops left/right via object-cover.
  */
 export function FillImage({
   src,
@@ -31,7 +31,11 @@ export function FillImage({
   if (isRemote && !failed) {
     return (
       <div
-        className={`relative h-full w-full min-h-0 min-w-0 overflow-hidden ${className}`}
+        className={
+          className.trim()
+            ? `overflow-hidden ${className}`
+            : "relative h-full w-full min-h-0 min-w-0 overflow-hidden"
+        }
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
