@@ -45,16 +45,15 @@ export function CharacterPreviewScroller({
             {index < CHARACTER_SLOT_COUNT ? (
               <div className={PORTRAIT_FRAME}>
                 {characterSet.preview_images[index]?.startsWith("http") ? (
-                  <div className="h-full w-full">
-                    <FillImage
-                      src={characterSet.preview_images[index]}
-                      alt={`${characterSet.display_name} ${index + 1}`}
-                      priority={index < 2}
-                    />
-                  </div>
+                  <FillImage
+                    src={characterSet.preview_images[index]}
+                    alt={`${characterSet.display_name} ${index + 1}`}
+                    className="absolute inset-0"
+                    priority={index < 2}
+                  />
                 ) : (
                   <div
-                    className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#1a1a1a] via-jojo-purple/30 to-jojo-cyan/20"
+                    className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1a1a1a] via-jojo-purple/30 to-jojo-cyan/20"
                     role="img"
                     aria-label={`${characterSet.display_name} preview ${index + 1}`}
                   >

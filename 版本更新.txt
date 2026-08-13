@@ -1,0 +1,28 @@
+本地
+cd D:\AUTOMAT\Xtiaozhuanye
+测试构建
+npm run build
+查看修改
+git status
+提交代码到本地git
+git add .
+git commit -m "描述本次修改"
+推送github
+git push origin main
+
+DEBIAN
+查看版本
+git log --oneline -3
+拉取最新代码
+git pull origin main
+更新依赖
+npm install
+部署CLOUDFLARE
+export CLOUDFLARE_API_TOKEN=你的TOKEN
+npm run deploy
+部署后查看
+npx wrangler deployments list
+环境变量更新
+npx wrangler secret list
+新增变量
+npx wrangler secret put ROOT_DOMAIN

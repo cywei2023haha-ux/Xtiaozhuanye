@@ -12,9 +12,10 @@ type FillImageProps = {
 };
 
 /**
- * In-flow sized box + covering img.
- * Avoid next/image `fill` (fragile on iOS) and avoid making the ONLY
- * child `absolute` without a sized parent.
+ * Cover-crop into parent box (any source aspect → frame).
+ * Uses absolute inset img so height works inside aspect-ratio frames
+ * on mobile Safari (percentage h-full alone often collapses).
+ * Landscape e.g. 1664×1080 in 9:16 → scale to cover, crop left/right.
  */
 export function FillImage({
   src,
@@ -29,7 +30,9 @@ export function FillImage({
 
   if (isRemote && !failed) {
     return (
-      <div className={`relative h-full w-full min-h-0 min-w-0 ${className}`}>
+      <div
+        className={`relative h-full w-full min-h-0 min-w-0 overflow-hidden ${className}`}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
@@ -38,7 +41,7 @@ export function FillImage({
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           referrerPolicy="no-referrer"
-          className={`block h-full w-full object-cover object-center ${imageClassName}`}
+          className={`absolute inset-0 h-full w-full max-w-none object-cover object-center ${imageClassName}`}
           onError={() => setFailed(true)}
         />
       </div>
